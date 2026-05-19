@@ -59,4 +59,6 @@ docker cp <service_name>:/usr/local/jtservice/Gemfile.lock ./Gemfile.lock
 
 - ALWAYS use `devkit exec <service_name> <cmd>` to run commands — never run them directly on the host.
 - The service name is derived from `basename $PWD`.
+- If devkit is not available, use the repository's native commands.
+- State the fallback before running native commands.
 - Exception: Kotlin/Java services do **NOT** use devkit.

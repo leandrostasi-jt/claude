@@ -1,6 +1,6 @@
 ---
 name: sdd-start
-description: Create an intent-level spec.md v0 for a feature before repository research. Uses AskUserQuestionTool to resolve blocking ambiguities. Does not inspect code, plan, or implement.
+description: Convert a rough feature idea into an intent-level spec.md under doc/playbook/<feature>. Uses AskUserQuestionTool to resolve blocking ambiguities before writing the spec. Does not inspect code, plan, or implement.
 origin: user
 ---
 
@@ -8,12 +8,16 @@ origin: user
 
 Create the initial intent-level spec for a feature from a rough requirement.
 
-This skill turns an unclear idea into a clear `spec.md` v0 that can guide repository research.
+This skill turns an unclear idea into a clear `spec.md` v0.
 
 It must not plan implementation.
 It must not inspect repository code.
 It must not modify application code.
-It must not create `research.md`, `delivery_artifacts/`, or `plan.md`.
+It must not create `research.md`, `delivery_artifacts/`, `facts/`, or `plan.md`.
+
+This skill is framework-agnostic.
+
+It must not assume Rails, Elixir, Kotlin, Terraform, devkit, Docker, CI, or any specific command runner.
 
 ## Rules
 
@@ -35,12 +39,12 @@ Use this skill when:
 
 The user may provide:
 
-- A rough idea
-- A product requirement
-- A technical requirement
-- A bug/change request
-- A feature name
-- A target playbook path
+- a rough idea
+- a product requirement
+- a technical requirement
+- a bug/change request
+- a feature name
+- a target playbook path
 
 If the playbook path is not explicit, infer a reasonable path:
 
@@ -66,8 +70,8 @@ Extract:
 
 - problem
 - goal
+- SDD rigor level
 - users/consumers
-- current behaviour, only if user-provided
 - desired behaviour
 - non-goals
 - EARS requirements
@@ -75,21 +79,22 @@ Extract:
 - edge cases
 - observability impact
 - compatibility impact
+- security/privacy/compliance impact
 - research questions
 - open questions
 
 ### 2. Identify ambiguities
 
-Classify ambiguities as blocking or non-blocking.
+Classify ambiguities as:
 
-#### Blocking ambiguities
+#### Blocking
 
 Questions that materially affect:
 
 - scope
 - behaviour
-- EARS requirements
 - acceptance scenarios
+- requirements
 - data model
 - external contracts
 - compatibility
@@ -97,8 +102,9 @@ Questions that materially affect:
 - observability
 - security/privacy/compliance
 - operational risk
+- SDD rigor level
 
-#### Non-blocking ambiguities
+#### Non-blocking
 
 Questions that can safely remain as open questions in `spec.md`.
 
@@ -109,9 +115,13 @@ If blocking ambiguities exist, use `AskUserQuestionTool`.
 Do not write `spec.md` until blocking ambiguities are resolved.
 
 Ask grouped, concrete questions.
+
 Prefer multiple-choice questions when possible.
+
 Avoid asking more than 7 questions in one round unless the requirement is highly ambiguous.
+
 Do not ask questions whose answer can be safely discovered later during `/sdd-research`.
+
 Do not ask questions that only affect implementation details.
 
 ### 4. Incorporate answers
@@ -133,6 +143,7 @@ Do not create:
 
 - `research.md`
 - `delivery_artifacts/`
+- `facts/`
 - `plan.md`
 - application code
 - tests
@@ -145,11 +156,11 @@ Use `AskUserQuestionTool` when:
 - the requested behaviour is ambiguous
 - the target users/consumers are unclear
 - there are conflicting interpretations
-- EARS requirements cannot be written confidently
 - acceptance criteria cannot be written confidently
 - there is a risk of over-scoping
 - there is a possible compatibility/security/operational concern
 - the user has not specified what is explicitly out of scope
+- the SDD rigor level is unclear and materially affects the workflow
 
 Do not use `AskUserQuestionTool` for:
 
@@ -157,35 +168,6 @@ Do not use `AskUserQuestionTool` for:
 - codebase facts that can be inspected later
 - minor naming preferences
 - questions that do not affect the spec
-
-## Question Format
-
-When using `AskUserQuestionTool`, ask questions in this style:
-
-```md
-I need to resolve these before writing `spec.md`:
-
-1. **Scope**
-   Should this feature affect:
-   - A) only the API
-   - B) API + async jobs
-   - C) API + async jobs + dashboards/alerts
-
-2. **Consumer**
-   Who is the primary consumer?
-   - A) internal backend service
-   - B) frontend/client app
-   - C) operations/support
-   - D) external customer/integration
-
-3. **Rollout**
-   Should this be:
-   - A) released directly
-   - B) behind a feature flag
-   - C) dark-launched first
-```
-
-Prefer clear options, but allow free-text answers.
 
 ## Requirements Syntax
 
@@ -198,7 +180,7 @@ Each requirement must:
 - be atomic
 - be testable or verifiable
 - avoid implementation details unless explicitly required
-- avoid vague words like “properly”, “fast”, “easy”, or “robust” unless quantified
+- avoid vague words like "properly", "fast", "easy", "robust", unless quantified
 
 Allowed EARS patterns:
 
@@ -213,38 +195,32 @@ Allowed EARS patterns:
 Write the spec using this structure:
 
 ```md
-<!-- sdd: spec_version=v0 -->
-<!-- sdd: refined=false -->
-
 # Spec: <feature>
+
+<!-- sdd: refined=false -->
+<!-- sdd_rigor: L1 | L1+ | L2 -->
+
+## SDD Rigor
+
+Level: <L0 | L1 | L1+ | L2>
+
+Reason:
+
+- ...
 
 ## Problem
 
-Describe the problem being solved.
-
 ## Goal
-
-Describe what should be true after this feature exists.
 
 ## Non-goals
 
-List what is explicitly out of scope.
-
 ## Users / Consumers
 
-List who consumes or depends on this behaviour.
-
 ## Current Behaviour
-
-Describe what happens today, based only on user-provided information.
-
-If current behaviour must be researched later, say:
 
 Unknown. Must be discovered during `/sdd-research`.
 
 ## Desired Behaviour
-
-Describe the target behaviour.
 
 ## Requirements
 
@@ -256,13 +232,7 @@ When <trigger>, the system shall <response>.
 
 The system shall <response>.
 
-### REQ-003
-
-If <unwanted event>, then the system shall <response>.
-
 ## Acceptance Scenarios
-
-Use Given / When / Then.
 
 ### Scenario 1: <name>
 
@@ -270,63 +240,22 @@ Given ...
 When ...
 Then ...
 
-### Scenario 2: <name>
-
-Given ...
-When ...
-Then ...
-
 ## Edge Cases
-
-List relevant edge cases.
 
 ## Observability
 
-Describe expected metrics, logs, dashboards, alerts, or operational visibility.
-
-Keep this behavioural, not implementation-specific.
-
 ## Compatibility
-
-Mention APIs, DB, Kafka, background jobs, clients, migrations, backwards compatibility, or rollout concerns.
 
 ## Security / Privacy / Compliance
 
-Mention only if relevant.
-
 ## Research Questions
 
-List codebase questions that must be answered before planning.
-
-- [ ] Where does the current flow live?
-- [ ] Which files/components are likely impacted?
-- [ ] Which existing contracts, dashboards, jobs, or consumers constrain the change?
+- [ ] ...
 
 ## Open Questions
 
-Use checkboxes for non-blocking questions.
-
 - [ ] ...
 ```
-
-## Assumption Policy
-
-The skill may make safe assumptions only when:
-
-- the assumption does not affect scope
-- the assumption does not affect external behaviour
-- the assumption can be corrected during `/sdd-research`
-- the assumption is explicitly written in `Open Questions`
-
-The skill must not make assumptions about:
-
-- business rules
-- acceptance criteria
-- consumers
-- rollout strategy
-- backwards compatibility
-- security/privacy requirements
-- operational expectations
 
 ## Quality Bar
 
@@ -335,9 +264,9 @@ The generated spec must be:
 - behaviour-focused
 - implementation-light
 - explicit about non-goals
-- expressed with EARS requirements
 - clear enough for `/sdd-research`
-- clear enough to later derive `delivery_artifacts/`
+- clear enough to derive `delivery_artifacts/`
+- clear enough to derive `facts/`
 - not dependent on hidden assumptions
 
 ## Output Rules
@@ -346,27 +275,6 @@ After writing `spec.md`, return only:
 
 - path created
 - short summary of the spec
+- selected SDD rigor level
 - number of open questions
 - next recommended command
-
-Example:
-
-```md
-Created:
-
-- `doc/playbook/20260518_provider_output_observability/spec.md`
-
-Summary:
-
-- Defines provider output observability by channel and notification group.
-- Keeps implementation details deferred to `/sdd-research`.
-
-Open questions:
-
-- 2 non-blocking questions remain.
-
-Next:
-
-- Run `/sdd-research doc/playbook/20260518_provider_output_observability`
-```
-

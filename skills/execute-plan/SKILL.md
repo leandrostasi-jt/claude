@@ -58,10 +58,10 @@ Tests: <test file paths from 2a>
 
 Run tests and linter using `devkit exec` — **never bare `bundle exec`**:
 
-```
-devkit exec bundle exec rails test <test file paths>
-devkit exec bundle exec jt-linter
-```
+Use project-specific devkit command if defined.
+Otherwise default to:
+
+`devkit exec $(basename "$PWD") <cmd>`
 
 **Pass:** mark the task complete in `plan.md` (`- [ ]` → `- [x]`) immediately, then continue.
 
@@ -69,8 +69,17 @@ devkit exec bundle exec jt-linter
 
 ## Constraints
 
-- `devkit exec bundle exec rails test <file>` only — never `bundle exec` directly.
+- `devkit exec exec rails test <file>` only — never `bundle exec` directly.
 - Never rewrite tests to make them pass artificially.
 - Never ask the user anything unless completely blocked with no path forward.
 - Write `- [x]` to `plan.md` immediately after each task is verified — do not batch writes.
 - Parallel tasks must be launched in a **single** Agent tool call.
+
+## SDD Guardrails
+
+Before execution, if the plan lives under `doc/playbook/<feature>/`:
+
+- Verify `spec.md` exists
+- Verify `research.md` exists
+- Verify every unchecked task points to a task file or contains explicit file scope
+- Refuse to execute if the plan requires architectural decisions not captured in an ADR or explicitly approved in the plan

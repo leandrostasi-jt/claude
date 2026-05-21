@@ -38,9 +38,11 @@ For non-trivial feature work, follow this sequence:
    - Must not implement tests or production code.
 
 6. `planner`
-   - Produces `plan.md` and `plan/tN.md`.
+   - Produces a compact `plan.md` index and detailed `plan/tN.md` task files.
    - Plans from the refined `spec.md`, `research.md`, `delivery_artifacts/*.md`, and `facts/*.md`.
    - Must not plan from `spec.md` v0 if `research.md` exists and refinement has not happened.
+   - Must not create a monolithic `plan.md` with all task details inline.
+   - Must follow `rules/common/output-budget.md`: create/update files one by one into small chunks.
 
 7. `/execute-plan`
    - Executes one or more approved tasks.
@@ -244,6 +246,20 @@ Tests belong in:
 
 Every implementation task must define how the delivered artifact will be validated.
 
+## Output Budget Rule
+
+When creating or updating SDD artifacts, follow:
+
+- `rules/common/output-budget.md`
+
+In particular:
+
+- create/update files one by one
+- use small chunks
+- avoid large `Write` or `Edit` operations
+- do not echo generated file contents in chat
+- do not generate multiple large files in the same response
+
 ## Planning Rule
 
 When planning under `doc/playbook/<feature>/`, the planner must read:
@@ -254,16 +270,40 @@ When planning under `doc/playbook/<feature>/`, the planner must read:
 - every markdown file under `facts/`
 - referenced ADRs
 - relevant rules
+- `rules/common/output-budget.md`
 
 Every concrete artifact listed under `delivery_artifacts/*.md` must be covered by at least one task in `plan.md`.
 
-Each task must include:
+`plan.md` must be a compact index/checklist, not a monolithic task document.
+
+`plan.md` must contain:
+
+- Task Checklist
+- Delivery Checklist
+- Facts Checklist
+- Validation summary
+- Task index pointing to `plan/tN.md`
+
+Detailed task instructions must live in separate task files:
+
+```txt
+plan/
+  t1.md
+  t2.md
+  t3.md
+```
+
+Each `plan/tN.md` task file must include:
 
 - `Delivers`
 - `Implements Facts`
 - `Allowed Files`
 - `Validation`
 - `Done When`
+
+Create or update plan files one by one into small chunks.
+
+Do not create a monolithic `plan.md` containing all task details inline.
 
 Tasks that can safely run in parallel must be marked with `[P]` in the task title/id.
 

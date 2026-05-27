@@ -1,185 +1,169 @@
 # Planner SDD Addition
 
-Add this to `agents/planner.md`.
+Add this section to `agents/planner.md`.
 
-## SDD
+## SDD Planning
 
-When planning work under `doc/playbook/<feature>/`, follow:
+When planning work under `doc/playbook/<feature>/`, follow all of these rules:
 
 - `rules/sdd/workflow.md`
-- `rules/sdd/facts.md`
+- `rules/common/output-budget.md`
+- `rules/sdd/output-budget.md`
 
-SDD is framework-agnostic.
+The planner must treat those rules as mandatory execution constraints.
 
-Do not derive framework-specific commands, runners, wrappers, or build tools from SDD rules.
+The output-budget rules are not formatting preferences. They control how the planner is allowed to read, create, update, and summarize planning artifacts.
 
-Use applicable project, stack, or repository rules for command selection.
+## SDD Planning Responsibilities
+
+The planner is responsible for converting approved SDD inputs into an executable implementation plan.
+
+Planning is not implementation.
+
+The planner must not modify production code, tests, CI files, gemspecs, migrations, dashboards, Terraform, or application files unless the user explicitly switches from planning to execution.
+
+The planner must produce a plan that can be executed later by an implementation agent without requiring that agent to invent missing scope.
 
 ## SDD Planning Inputs
 
-When the requested work is under `doc/playbook/<feature>/`, you MUST read before planning:
+When the requested work is under `doc/playbook/<feature>/`, the planner must read the following before planning:
 
 - `doc/playbook/<feature>/spec.md`
 - `doc/playbook/<feature>/research.md`
 - every markdown file under `doc/playbook/<feature>/delivery_artifacts/`
-- every markdown file under `doc/playbook/<feature>/facts/`
-- any ADR explicitly referenced by the spec, research, delivery artifacts, or facts
-- relevant repository, stack, and common rules
+- any ADR explicitly referenced by the spec, research, or delivery artifacts
+- relevant repository rules from `rules/`
 
 If `research.md` is missing, stop and ask the user to run `/sdd-research` first.
 
-If `spec.md` is not refined and `research.md` exists, stop and ask the user to run `/sdd-refine` first.
-
 If `delivery_artifacts/` is missing or contains no markdown files, stop and ask the user to run `/sdd-delivery-artifacts` first.
 
-If the SDD rigor level is `L1+` or `L2` and `facts/` is missing or empty, stop and ask the user to run `/sdd-facts` first.
+Do not assume fixed delivery artifact filenames.
 
-Do not infer implementation context from memory.
+Use the actual markdown files present under `delivery_artifacts/`.
 
 Use:
 
 - `spec.md` as the behavioural source of truth
 - `research.md` as the repository-evidence source of truth
 - `delivery_artifacts/` as the production-scope source of truth
-- `facts/` as the executable-verification source of truth
+- ADRs as architectural decision constraints
+- repository rules as execution constraints
 
-## SDD Plan Format
+Do not plan from an unrefined `spec.md` if `research.md` exists and `sdd-refine` has not been run.
 
-When planning under `doc/playbook/<feature>/`, `plan.md` must start with:
+A refined spec must contain:
 
-1. `Task Checklist`
-2. `Delivery Checklist`
-3. `Facts Checklist`
-4. `Validation`
+```md
+<!-- sdd: refined=true -->
+```
 
-Each task must have a stable id:
+If that marker is missing, stop and ask the user to run `/sdd-refine` first.
 
-- `T1`
-- `T2`
-- `T3`
+## SDD Planning Output Structure
 
-Use `[P]` in the task id/title to mark tasks that can be executed in parallel.
+The planner must create this structure:
+
+```text
+doc/playbook/<feature>/
+  plan.md
+  plan/
+    t1.md
+    t2.md
+    t3.md
+    ...
+```
+
+`plan.md` is only the compact execution index.
+
+`plan/tN.md` files are the detailed execution contracts.
+
+The planner must not create a monolithic `plan.md`.
+
+Every executable task listed in `plan.md` must have a matching child task file under `plan/`.
+
+Valid examples:
+
+- `plan/t1.md`
+- `plan/t2.md`
+- `plan/t3.md`
+
+Invalid examples:
+
+- all task details embedded only in `plan.md`
+- vague checklist bullets without child task files
+- task files that only repeat the checklist without implementation detail
+
+## `plan.md` Contract
+
+`plan.md` must stay compact.
+
+It may include only:
+
+- title
+- goal
+- scope summary
+- global execution rules
+- validation commands
+- task index
+- task checklist
+- dependency order between tasks
+- human gates, if any
+- rollback summary, if relevant
+
+`plan.md` must not contain detailed implementation instructions.
+
+Detailed instructions belong in `plan/tN.md`.
+
+The task index in `plan.md` must reference the child file for each task.
 
 Example:
 
 ```md
-## Task Checklist
-
-- [ ] T1: Add instrumentation event
-- [ ] T2 [P]: Update dashboard panel
-- [ ] T3 [P]: Update runbook documentation
-- [ ] T4: Final validation
+| Task | Title | File | Delivers |
+|------|-------|------|----------|
+| T1 | Add OTel dependencies | `plan/t1.md` | `delivery_artifacts/01-dependencies.md` |
 ```
 
-## Parallelizable Tasks
+## Child Task File Contract
 
-A task may be marked `[P]` only when:
+Each `plan/tN.md` file must be specific enough for an implementation agent to execute without guessing.
 
-- it modifies disjoint files from other `[P]` tasks
-- it does not depend on another `[P]` task
-- it does not create merge-conflict risk
-- it can be validated independently
+Each child task file must include:
 
-Do not create a separate parallelization section.
+- task id and title
+- objective
+- delivery artifact coverage
+- traceability
+- files allowed to change
+- files not allowed to change
+- exact implementation steps
+- tests to add or update
+- validation commands
+- completion criteria
+- rollback or safety notes when relevant
+- out-of-scope changes
 
-If a task is sequential, do not add `[P]`.
+The implementation steps must be concrete.
 
-If in doubt, leave the task sequential.
+Avoid vague instructions such as:
 
-## Delivery Checklist
+- “update instrumentation”
+- “add tests”
+- “wire OTel”
+- “clean up code”
+- “ensure compatibility”
 
-Every concrete artifact from `delivery_artifacts/*.md` must appear in the `Delivery Checklist` with `[ ]`.
+Prefer concrete instructions such as:
 
-Example:
-
-```md
-## Delivery Checklist
-
-- [ ] `delivery_artifacts/01-observability.md` -> `<artifact heading>`
-- [ ] `delivery_artifacts/02-documentation.md` -> `<artifact heading>`
-```
-
-## Facts Checklist
-
-Every `@spec` fact from `facts/*.md` must appear in the `Facts Checklist` with `[ ]`.
-
-Example:
-
-```md
-## Facts Checklist
-
-- [ ] `facts/01-observability-facts.md` -> `FACT-001`
-- [ ] `facts/01-observability-facts.md` -> `FACT-002`
-```
-
-## Validation
-
-Resolve validation using applicable project, stack, or repository rules.
-
-Do not invent stack-specific commands from SDD rules.
-
-If no project rule defines how to run validation, write:
-
-```md
-Command: TODO - resolve from project rules
-```
-
-and do not guess.
-
-Validation entries should say what must be verified, and may include concrete commands only when those commands are defined by relevant project rules.
-
-Example:
-
-```md
-## Validation
-
-- Check type: unit/integration/contract/schema/static/smoke/other
-- Scope: <what must be verified>
-- Command: resolved from applicable project rules
-```
-
-## Task Format
-
-Each task must include:
-
-```md
-### T1: <task title>
-
-Delivers:
-
-- `delivery_artifacts/<file>.md` -> `<artifact heading>`
-
-Implements Facts:
-
-- `facts/<file>.md` -> `FACT-001`
-
-Allowed Files:
-
-- `path/to/file`
-- `path/to/other_file`
-
-Validation:
-
-- Check type: <type>
-- Scope: <what must be verified>
-- Command: <resolved command or TODO>
-
-Done When:
-
-- [ ] ...
-```
-
-For task files, use the same task title:
-
-```md
-# T2 [P]: Update dashboard panel
-```
+- “Remove `ddtrace` from `jt-kafka.gemspec` runtime dependencies.”
+- “Add `opentelemetry-api`, constrained to `~> 1.0`, as a runtime dependency.”
+- “Add a test asserting existing Kafka headers remain present after propagation injection.”
+- “Do not modify producer retry behaviour.”
 
 ## SDD Plan Coverage
 
 Every concrete artifact listed under `delivery_artifacts/*.md` must be covered by at least one task in `plan.md`.
-
-Every `@spec` fact listed under `facts/*.md` must be implemented by at least one task or explicitly deferred.
 
 Each task must include a `Delivers` section referencing:
 
@@ -187,27 +171,166 @@ Each task must include a `Delivers` section referencing:
 - the artifact heading
 - the concrete output being produced
 
-Each task must include an `Implements Facts` section referencing:
+Tests are not delivery artifacts.
 
-- the facts file
-- the fact id
+However, every implementation task must define the tests or validation required to prove the delivered artifact works.
 
-Do not create implementation tasks that do not map to a delivery artifact or fact, unless explicitly marked as technical enabling work.
+Do not create implementation tasks that do not map to a delivery artifact unless they are explicitly marked as technical enabling work.
+
+Technical enabling work must still include:
+
+- why it is required
+- which later delivery artifact it enables
+- how it will be validated
+
+## SDD Traceability
+
+For each task, include a `Traceability` section referencing at least one of:
+
+- an EARS requirement id from `spec.md`, such as `REQ-001`
+- an acceptance scenario from `spec.md`
+- a finding from `research.md`
+- an ADR
+- a delivery artifact
+- a test, schema, API contract, dashboard, alert, migration, or validation requirement
+
+Traceability must appear in the child task file.
+
+`plan.md` may contain only a compact traceability summary.
+
+## SDD Output Budget Requirements
+
+Before creating or updating `plan.md` or any child task files, the planner must:
+
+1. Read the applicable SDD workflow rules.
+2. Read the common output-budget rules.
+3. Read the SDD-specific output-budget rules.
+4. Plan file creation incrementally.
+
+The planner must obey the output-budget rules while creating planning artifacts.
+
+When output budget is constrained, the planner must:
+
+- write one file at a time
+- write one section at a time when needed
+- create only one child task file at a time
+- avoid large `Write`, `Edit`, or Bash heredoc payloads
+- avoid printing generated file contents in chat
+- stop after a small write and summarize briefly
+
+The planner must not do this:
+
+1. read many files
+2. synthesize a full detailed plan
+3. write a large `plan.md`
+4. write all child task files
+5. summarize everything in one assistant turn
+
+That pattern is output-budget unsafe.
+
+## SDD Recovery Mode
+
+If an output-limit failure occurs, the planner must enter Recovery Mode.
+
+In Recovery Mode, the planner must not retry the same large write.
+
+The next action must be smaller than the failed action.
+
+Allowed Recovery Mode actions:
+
+- create only the missing directory
+- create only an empty `plan.md`
+- append one short section to `plan.md`
+- create one child task file
+- append one short section to one child task file
+- summarize in at most 20 visible words
+
+Forbidden Recovery Mode actions:
+
+- continue writing the full plan
+- create multiple task files
+- use subagents
+- read more source files
+- print generated file contents
+- retry the same large `Write`, `Edit`, or heredoc
+
+After Recovery Mode succeeds, continue incrementally.
+
+## SDD Planning Completion Criteria
+
+The planner is not done until all of the following are true:
+
+- `plan.md` exists
+- `plan/` directory exists
+- every task listed in `plan.md` has a matching `plan/tN.md`
+- every `plan/tN.md` has concrete implementation instructions
+- every delivery artifact is covered by at least one task
+- every implementation task defines tests or validation
+- every task has traceability
+- output-budget rules were followed
+- no implementation files were changed
+
+If any of these are missing, the planner must not claim that planning is complete.
+
+## Example Child Task Shape
+
+```md
+# T2 — Add provider output instrumentation
+
+## Objective
+
+Add provider output instrumentation without changing delivery behaviour.
+
+## Delivers
+
+- `delivery_artifacts/02-observability.md` → `delivery.output.attempted`
+  - Add counter metric grouped by `channel` and `outcome`.
 
 ## Traceability
 
-For L1+ and L2 work, maintain lightweight traceability:
+- Requirement: `REQ-001`
+- Requirement: `REQ-002`
+- Research: `app/services/delivery/output_handler.rb` currently handles provider output without emitting a metric.
 
-```txt
-REQ -> FACT -> TASK
+## Files Allowed to Change
+
+- `app/services/delivery/output_handler.rb`
+- `test/services/delivery/output_handler_test.rb`
+
+## Files Not Allowed to Change
+
+- Kafka consumers
+- provider client implementations
+- retry logic
+- dashboards
+- alerts
+
+## Implementation Steps
+
+1. Locate the successful provider output path.
+2. Emit the metric after the provider call succeeds.
+3. Include `channel` and `outcome` tags.
+4. Do not emit the metric before the provider call.
+5. Do not change retry or exception behaviour.
+
+## Tests
+
+- Add or update a targeted test proving the metric is emitted on success.
+- Add or update a targeted test proving the metric is not emitted before the provider call completes.
+
+## Validation
+
+- Run the targeted test file.
+- Run the linter.
+
+## Completion Criteria
+
+- Metric is emitted only on the intended path.
+- Tests pass.
+- Linter passes.
+- No out-of-scope files changed.
+
+## Rollback / Safety Notes
+
+Removing the metric emission restores previous runtime behaviour.
 ```
-
-The planner does not need to create a heavy traceability matrix.
-
-It is enough that tasks reference facts, and facts reference requirements.
-
-## No Unapproved Scope
-
-Do not add tasks outside the refined spec, delivery artifacts, or facts unless clearly marked as technical enabling work.
-
-Technical enabling work must explain why it is necessary.

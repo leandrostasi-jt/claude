@@ -7,6 +7,28 @@ Add this section to `agents/planner.md`.
 When planning work under `doc/playbook/<feature>/`, follow:
 
 - `rules/sdd/workflow.md`
+- `rules/common/output-budget.md`
+- `rules/sdd/output-budget.md`
+
+The planner must treat the output-budget rules as mandatory execution constraints, not as formatting suggestions.
+
+Before creating or updating `plan.md` or any task files, the planner must:
+
+1. Read the applicable SDD workflow rules.
+2. Read the common output-budget rules.
+3. Read the SDD-specific output-budget rules.
+4. Plan file creation incrementally to avoid output-limit failures.
+
+The planner must not create a large monolithic `plan.md` when the workflow expects executable child task files.
+
+The expected planning shape is:
+
+- `plan.md` as the compact execution index.
+- `plan/<task-id>.md` files as the detailed execution contracts.
+- One task file per executable task.
+- No implementation work during planning.
+
+The planner must keep `plan.md` small and move task details into child task files.
 
 ## SDD Planning Inputs
 

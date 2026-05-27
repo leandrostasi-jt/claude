@@ -26,6 +26,7 @@ Custom subagent definitions. Each agent has a narrow, well-defined role:
 | `planner` | Converts an approved task/spec into a deterministic `plan.md` |
 | `implementer` | Executes an approved `plan.md` with minimal changes |
 | `reviewer` | Reviews code changes against the plan, spec, and delivery artifacts |
+| `antagonist` | Adversarial pre-PR reviewer: looks for blockers, hidden risks, weak validation, unsafe rollout, and scope creep |
 | `tdd-guide` | Enforces test-first workflow: red → green → refactor |
 | `tech-lead` | Research and planning only — never modifies code |
 
@@ -39,6 +40,7 @@ Slash commands that orchestrate multi-step workflows:
 | `sdd-research` | `/sdd-research` | Inspects the repository against `spec.md` and writes `research.md` with concrete code evidence |
 | `sdd-refine` | `/sdd-refine` | Refines `spec.md` using `research.md`, producing the planning-ready version |
 | `sdd-delivery-artifacts` | `/sdd-delivery-artifacts` | Creates `delivery_artifacts/*.md`, a feature-specific map of what must be produced or modified |
+| `sdd-facts` | `/sdd-facts` | Creates `facts/*.md`, executable or verifiable assertions that prove important requirements |
 | `execute-plan` | `/execute-plan` | Reads `plan.md` and drives every task to completion using a TDD loop, parallelizing disjoint tasks when safe |
 | `deep-spec-review` | `/deep-spec-review` | Runs specialist reviewers in parallel — security, cost, compliance, ops, architecture — and conducts structured Q&A before edits |
 | `architecture-decision-records` | `/architecture-decision-records` | Captures architectural decisions as structured ADR documents in `docs/adr/` |
@@ -98,14 +100,20 @@ The SDD workflow is:
 /sdd-delivery-artifacts
   → delivery_artifacts/*.md
 
+/sdd-facts
+  → facts/*.md
+
 planner
   → plan.md + plan/tN.md
 
 /execute-plan
-  → code changes + validation
+  → code changes + validation + tracking updates
 
 reviewer
-  → final review against spec, research, delivery artifacts, and plan
+  → final review against spec, research, delivery artifacts, facts, and plan
+
+antagonist
+  → adversarial pre-PR review for blockers, hidden risk, weak validation, unsafe rollout, and scope creep
 ```
 
 The goal is to avoid jumping from a rough requirement directly into implementation.
@@ -247,7 +255,41 @@ The actual files must be inferred from the feature.
 
 Tests are not delivery artifacts. Tests belong in the plan and task validation sections.
 
-### 5. Plan from the refined inputs
+### 5. Generate facts
+
+Run:
+
+```text
+/sdd-facts doc/playbook/<feature>
+```
+
+This creates:
+
+```text
+facts/*.md
+```
+
+Facts are executable or verifiable assertions.
+
+They exist because specs explain intent, but facts prove behaviour.
+
+A fact should link back to one or more `REQ-*` requirements and eventually be proven by a deterministic check, such as:
+
+- test
+- contract check
+- schema validation
+- smoke test
+- static analysis
+- infrastructure validation
+- CI job
+
+Facts help reviewers answer:
+
+```text
+Does this implementation actually prove the important behaviour, or does it merely look complete?
+```
+
+### 6. Plan from the refined inputs
 
 Invoke the `planner` agent only after these exist:
 
@@ -255,6 +297,7 @@ Invoke the `planner` agent only after these exist:
 spec.md
 research.md
 delivery_artifacts/*.md
+facts/*.md
 ```
 
 The planner must read:
@@ -262,6 +305,7 @@ The planner must read:
 - `spec.md`
 - `research.md`
 - every markdown file under `delivery_artifacts/`
+- every markdown file under `facts/`
 - referenced ADRs
 - relevant rules
 
@@ -274,17 +318,21 @@ plan/t2.md
 ...
 ```
 
-The plan must cover every concrete artifact listed under `delivery_artifacts/*.md`.
+The plan must cover:
+
+- every concrete artifact listed under `delivery_artifacts/*.md`
+- every `@spec` fact listed under `facts/*.md`
 
 Each task should include:
 
 - `Delivers`
+- `Implements Facts`
 - allowed files
 - implementation notes
 - validation/tests
 - done criteria
 
-### 6. Execute the approved plan
+### 7. Execute the approved plan
 
 Run:
 
@@ -294,9 +342,18 @@ Run:
 
 Execution must follow the approved plan and modify only files allowed by the relevant task.
 
-Validation must use the project-specific commands, normally through `devkit`.
+Validation must use the applicable project, stack, and common rules.
 
-### 7. Review the result
+A task is not complete when code changes are implemented. A task is complete only when implementation, validation, and SDD tracking updates are all done.
+
+After each verified task, `/execute-plan` must update the relevant tracking files when applicable:
+
+- `plan.md`
+- `plan/tN.md`
+- `delivery_artifacts/*.md`
+- `facts/*.md`
+
+### 8. Review the result
 
 Invoke the `reviewer` agent.
 
@@ -305,10 +362,67 @@ The review should check the diff against:
 - refined `spec.md`
 - `research.md`
 - `delivery_artifacts/*.md`
+- `facts/*.md`
 - `plan.md`
 - completed `plan/tN.md` tasks
 
-The reviewer should verify that all delivery artifacts were produced or explicitly deferred.
+The reviewer should verify that:
+
+- all delivery artifacts were produced or explicitly deferred
+- facts marked `@implemented` have executable checks that exist and passed
+- completed tasks match the actual diff
+
+### 9. Run the antagonist before PR
+
+Invoke the `antagonist` agent when the work is ready to become a PR.
+
+The antagonist is not a normal reviewer.
+
+The reviewer asks:
+
+```text
+Is this implementation correct against the plan?
+```
+
+The antagonist asks:
+
+```text
+Why should this not be merged yet?
+```
+
+Use it especially for L1+ and L2 work:
+
+- production-impacting changes
+- migrations
+- observability changes
+- dual-run systems
+- dependency removal
+- cross-service changes
+- queues, jobs, or consumers
+- personal data
+- permissions, authentication, or authorization
+- rollout or rollback risk
+
+The antagonist should look for:
+
+- unmet requirements
+- facts that do not really prove the requirement
+- delivery artifacts marked complete without evidence
+- unsafe rollout
+- missing rollback or reversibility
+- staging/production mismatch
+- hidden coupling
+- premature dependency removal
+- operational blind spots
+- scope creep
+
+The output should be sharp and adversarial:
+
+```text
+BLOCK | CAUTION | PASS
+```
+
+The goal is to raise red flags before GitHub review, especially when AI-assisted implementation reduced the human owner's cognitive load.
 
 ## EARS requirements in specs
 
@@ -347,6 +461,34 @@ If the provider output attempt fails, then the system shall preserve the existin
 
 Acceptance scenarios may use Given/When/Then, but they do not replace EARS requirements.
 
+## Facts
+
+Facts turn important requirements into executable or verifiable assertions.
+
+The short version:
+
+```text
+Specs explain intent.
+Facts prove behaviour.
+```
+
+A fact should usually reference one or more `REQ-*` requirements.
+
+Example:
+
+```text
+FACT-001:
+When provider output is emitted, the system records both Datadog and OpenTelemetry signals during the dual-run phase.
+
+Requirement:
+- REQ-001
+
+Executable check:
+- resolved from project rules
+```
+
+Facts should not be marked `@implemented` unless the executable check exists and passed.
+
 ## SDD artifact responsibilities
 
 | Artifact | Responsibility |
@@ -354,9 +496,133 @@ Acceptance scenarios may use Given/When/Then, but they do not replace EARS requi
 | `spec.md` | Behavioural source of truth |
 | `research.md` | Repository-evidence source of truth |
 | `delivery_artifacts/*.md` | Production-scope source of truth |
+| `facts/*.md` | Executable-verification source of truth |
 | `plan.md` | Execution source of truth |
 | `plan/tN.md` | Atomic task instructions |
 | tests/contracts/schemas/ADRs/dashboards/alerts/code | Permanent artifacts |
+
+## Example: using the full flow
+
+Imagine we want to add a small feature:
+
+```text
+When a user receives a very boring notification, the system should add a tiny fun fact to make it less depressing.
+```
+
+Start with a rough prompt:
+
+```text
+Help me write the specification for adding a tiny fun fact to boring notifications.
+The goal is to make low-priority notifications feel a bit more human without changing critical or legal messages.
+```
+
+Then run the flow:
+
+```text
+/sdd-start doc/playbook/20260601_fun_fact_notifications
+```
+
+Claude should ask questions if the requirement is unclear, then create `spec.md`.
+
+Next:
+
+```text
+/sdd-research doc/playbook/20260601_fun_fact_notifications
+```
+
+This checks the repo and answers questions like:
+
+- where notifications are built
+- whether notification priority already exists
+- whether legal/critical messages can be detected
+- where tests already live
+
+Then:
+
+```text
+/sdd-refine doc/playbook/20260601_fun_fact_notifications
+```
+
+This turns the original intent into a repo-aware spec.
+
+Then:
+
+```text
+/sdd-delivery-artifacts doc/playbook/20260601_fun_fact_notifications
+```
+
+This lists what must be produced, for example:
+
+```text
+delivery_artifacts/
+├── 01-notification-content.md
+└── 02-safety-rules.md
+```
+
+Then:
+
+```text
+/sdd-facts doc/playbook/20260601_fun_fact_notifications
+```
+
+This defines what must be proven, for example:
+
+```text
+FACT-001: boring low-priority notifications may receive a fun fact
+FACT-002: critical/legal notifications must never receive a fun fact
+```
+
+Then invoke the planner:
+
+```text
+Use the planner agent for doc/playbook/20260601_fun_fact_notifications
+```
+
+The planner creates:
+
+```text
+plan.md
+plan/
+├── t1.md
+├── t2.md
+└── t3.md
+```
+
+Then execute:
+
+```text
+/execute-plan doc/playbook/20260601_fun_fact_notifications
+```
+
+After implementation, run the normal review:
+
+```text
+Use the reviewer agent for doc/playbook/20260601_fun_fact_notifications
+```
+
+And before opening the PR, run the adversarial review:
+
+```text
+Use the antagonist agent for doc/playbook/20260601_fun_fact_notifications.
+Assume this may be subtly wrong or unsafe.
+Find reasons this should not be merged yet.
+```
+
+The antagonist might flag something like:
+
+```text
+BLOCK: The spec says legal notifications must never receive fun facts,
+but there is no fact proving that legal messages are excluded.
+```
+
+That is the point of the workflow: not to generate more documents for fun, but to catch the thing we would otherwise miss.
+
+## References
+
+This workflow was influenced by these articles on Spec-Driven Development and Facts:
+
+- [Stop Writing Specs. Start Writing Facts. The Entire SDD Movement Is Already Obsolete](https://medium.com/@wasowski.jarek/stop-writing-specs-start-writing-facts-the-entire-sdd-movement-is-already-obsolete-9045f7061e26)
+- [Comparing 15 Spec-Driven Development Frameworks](https://medium.com/@wasowski.jarek/comparing-15-spec-driven-development-frameworks-sdd-c052df529274)
 
 ## Based on
 

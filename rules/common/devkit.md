@@ -177,12 +177,34 @@ Then copy generated files back to the host only if needed:
 docker cp <service_name>:/usr/local/jtservice/Gemfile.lock ./Gemfile.lock
 ```
 
+## Standalone Libraries (e.g. Ruby gems)
+
+Some projects are standalone libraries with their own `docker-compose.yml` and are **not** registered as devkit services. These projects cannot use `devkit exec` because `devkit` always `cd`s into `~/Projects/devkit` and only knows about services defined there.
+
+For standalone libraries, use `docker compose` directly from the project root.
+
+To build and run tests, credentials for GitHub Packages are required as Docker build args. Obtain them from devkit secrets:
+
+```bash
+eval "$(devkit secrets list | grep GH_PACKAGES)"
+```
+
+Then build and run:
+
+```bash
+GH_PACKAGES_READ_USER=$GH_PACKAGES_READ_USER \
+  GH_PACKAGES_READ_TOKEN=$GH_PACKAGES_READ_TOKEN \
+  docker compose build
+docker compose run --rm app
+```
+
 ## Rules
 
 - ALWAYS use `devkit exec <service_name> <cmd>` to run service commands.
 - The service name is derived from `basename "$PWD"` unless specified by the user.
 - NEVER run service commands directly on the host.
-- NEVER use raw Docker commands except `docker cp` for copying generated files back to the host.
+- NEVER use raw Docker commands except `docker cp` for copying generated files back to the host, and `docker compose` for standalone libraries (see above).
 - NEVER use raw Docker as a workaround when devkit fails.
 - If devkit cannot complete the task, stop and ask the user with `AskUserQuestionTool`.
 - Exception: Kotlin/Java services do **NOT** use devkit.
+- Exception: Standalone libraries with their own `docker-compose.yml` use `docker compose` directly with credentials from `devkit secrets list`.

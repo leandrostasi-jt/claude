@@ -64,73 +64,104 @@ Claude Code project configuration — permissions allowlist, model selection, an
 
 ## Installation & Setup
 
-This repository contains Claude Code configuration files. To use these with Claude Code, ensure you have the [Claude Code VS Code extension](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-dev) installed.
+This repository contains Claude Code configuration files (agents, skills, rules, and behavioral constraints) that you install once to use across all your projects.
 
-### Option 1: Use as a VS Code Workspace (Recommended)
+### Installation
 
-This option gives you workspace-specific agents, skills, and rules that are only active when working in this project.
-
-1. Clone this repository to your local machine:
+1. Clone this repository:
    ```bash
    git clone https://github.com/Legrandk/claude.git
    cd claude
    ```
 
-2. Open the directory as a VS Code workspace:
-   ```bash
-   code .
-   ```
-
-3. In VS Code, open Claude Code (press `Cmd+Shift+L` on macOS or `Ctrl+Shift+L` on Windows/Linux).
-
-4. Claude Code automatically discovers the workspace and loads:
-   - `CLAUDE.md` — core behavioral constraints
-   - `agents/` — custom agents like `@planner`, `@reviewer`, etc.
-   - `skills/` — slash commands like `/sdd-start`, `/execute-plan`, etc.
-   - `rules/` — domain-specific standards (Rails, Terraform, SDD, etc.)
-
-### Option 2: Copy to VS Code Configuration (Global)
-
-This option makes these configurations available globally in Claude Code across all workspaces.
-
-1. Clone the repository (see step 1 above).
-
-2. Copy the configuration files to your Claude Code user configuration directory:
+2. Copy the configuration files to your home directory where Claude Code looks for them:
    ```bash
    # macOS/Linux
-   mkdir -p ~/.config/Code/User/claude-code
-   cp -r agents/ ~/.config/Code/User/claude-code/
-   cp -r skills/ ~/.config/Code/User/claude-code/
-   cp -r rules/ ~/.config/Code/User/claude-code/
-   cp CLAUDE.md ~/.config/Code/User/claude-code/
+   mkdir -p ~/.claude
+   cp -r agents/ ~/.claude/
+   cp -r skills/ ~/.claude/
+   cp -r rules/ ~/.claude/
+   cp CLAUDE.md ~/.claude/
 
    # Windows
-   mkdir %APPDATA%\Code\User\claude-code
-   xcopy agents\ %APPDATA%\Code\User\claude-code\agents\
-   xcopy skills\ %APPDATA%\Code\User\claude-code\skills\
-   xcopy rules\ %APPDATA%\Code\User\claude-code\rules\
-   copy CLAUDE.md %APPDATA%\Code\User\claude-code\
+   mkdir %USERPROFILE%\.claude
+   xcopy agents\ %USERPROFILE%\.claude\agents\ /E /I
+   xcopy skills\ %USERPROFILE%\.claude\skills\ /E /I
+   xcopy rules\ %USERPROFILE%\.claude\rules\ /E /I
+   copy CLAUDE.md %USERPROFILE%\.claude\
    ```
 
-3. Restart VS Code and reopen Claude Code chat.
+3. Restart Claude Code (web interface or VS Code extension) if it's already running.
 
-### Verify Installation
+### Verification
 
-After setup, open Claude Code chat and confirm:
+After installation, open Claude Code in ANY project and test:
 
-1. **Check CLAUDE.md is loaded**: Look for core behavioral constraints in the system prompt:
-   - "Think before coding"
-   - "Simplicity first"
-   - "Surgical changes"
+1. **Check agents** — Type `@` in chat and you should see:
+   - `@planner`
+   - `@implementer`
+   - `@reviewer`
+   - `@antagonist`
+   - `@tech-lead`
+   - `@tdd-guide`
 
-2. **Test agents** — Type in chat:
-   ```
-   @planner What agents are available?
-   ```
-   You should see: `planner`, `implementer`, `reviewer`, `antagonist`, `tdd-guide`, `tech-lead`
+2. **Check slash commands** — Type `/` in chat and you should see:
+   - `/sdd-start`
+   - `/sdd-research`
+   - `/sdd-refine`
+   - `/execute-plan`
+   - `/deep-spec-review`
+   - And more...
 
-3. **Test slash commands** — Type `/` in chat and you should see suggestions for:
-   `/sdd-start`, `/sdd-research`, `/sdd-refine`, `/execute-plan`, etc.
+3. **Check CLAUDE.md** — The core behavioral constraints should be active:
+   - Think before coding
+   - Simplicity first
+   - Surgical changes
+   - Goal-driven execution
+
+### Usage
+
+Once installed, these tools are available in every Claude Code session:
+
+```bash
+# Start a new feature with spec-driven development
+/sdd-start doc/playbook/20260603_my_feature
+
+# Ask the planner to create a plan
+@planner Review this spec and create a plan.md
+
+# Execute the plan
+/execute-plan
+
+# Review the changes
+@reviewer Check if implementation matches the plan
+```
+
+### Updating
+
+To update to the latest version:
+
+```bash
+cd claude
+git pull
+cp -r agents/ skills/ rules/ CLAUDE.md ~/.claude/
+```
+
+### For VS Code Users
+
+If you're using the VS Code extension, you may also want to copy the VS Code-specific files:
+
+```bash
+# macOS/Linux
+cp settings.json ~/Library/Application\ Support/Code/User/settings.json
+cp keybindings.json ~/Library/Application\ Support/Code/User/keybindings.json
+
+# Windows
+copy settings.json %APPDATA%\Code\User\settings.json
+copy keybindings.json %APPDATA%\Code\User\keybindings.json
+```
+
+**Note:** This will overwrite your existing VS Code settings. Review the files first and merge manually if you have existing customizations.
 
 ## Using with Claude Code
 

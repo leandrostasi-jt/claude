@@ -62,6 +62,55 @@ rules/
 
 Claude Code project configuration — permissions allowlist, model selection, and token limits.
 
+## Installation & Setup
+
+This repository contains Claude Code configuration files. There are two ways to use it:
+
+### Option 1: Use as a VS Code Workspace (Recommended)
+
+1. Clone this repository to your local machine:
+   ```bash
+   git clone https://github.com/Legrandk/claude.git
+   cd claude
+   ```
+
+2. Open the directory as a VS Code workspace:
+   ```bash
+   code .
+   ```
+
+3. Claude Code will automatically load `CLAUDE.md`, `agents/`, `skills/`, and `rules/` when you open the chat in this workspace.
+
+### Option 2: Copy to VS Code Configuration
+
+If you want these configurations available globally in Claude Code:
+
+1. Clone the repository (see step 1 above).
+
+2. Copy the configuration files to your VS Code user configuration directory:
+   ```bash
+   # macOS/Linux
+   cp -r agents/ ~/.config/Code/User/agents/
+   cp -r skills/ ~/.config/Code/User/skills/
+   cp -r rules/ ~/.config/Code/User/rules/
+   cp CLAUDE.md ~/.config/Code/User/
+
+   # Windows
+   xcopy agents\ %APPDATA%\Code\User\agents\
+   xcopy skills\ %APPDATA%\Code\User\skills\
+   xcopy rules\ %APPDATA%\Code\User\rules\
+   copy CLAUDE.md %APPDATA%\Code\User\
+   ```
+
+3. Restart VS Code to apply the changes.
+
+### Verify Installation
+
+After setup, open Claude Code chat and confirm that:
+- `/sdd-start` command is available (slash command)
+- `planner`, `implementer`, `reviewer` agents are available
+- `CLAUDE.md` is loaded with core behavioral constraints
+
 ## How it works
 
 There are two main operating modes.

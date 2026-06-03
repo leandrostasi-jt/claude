@@ -64,9 +64,11 @@ Claude Code project configuration — permissions allowlist, model selection, an
 
 ## Installation & Setup
 
-This repository contains Claude Code configuration files. There are two ways to use it:
+This repository contains Claude Code configuration files. To use these with Claude Code, ensure you have the [Claude Code VS Code extension](https://marketplace.visualstudio.com/items?itemName=Anthropic.claude-dev) installed.
 
 ### Option 1: Use as a VS Code Workspace (Recommended)
+
+This option gives you workspace-specific agents, skills, and rules that are only active when working in this project.
 
 1. Clone this repository to your local machine:
    ```bash
@@ -79,37 +81,101 @@ This repository contains Claude Code configuration files. There are two ways to 
    code .
    ```
 
-3. Claude Code will automatically load `CLAUDE.md`, `agents/`, `skills/`, and `rules/` when you open the chat in this workspace.
+3. In VS Code, open Claude Code (press `Cmd+Shift+L` on macOS or `Ctrl+Shift+L` on Windows/Linux).
 
-### Option 2: Copy to VS Code Configuration
+4. Claude Code automatically discovers the workspace and loads:
+   - `CLAUDE.md` — core behavioral constraints
+   - `agents/` — custom agents like `@planner`, `@reviewer`, etc.
+   - `skills/` — slash commands like `/sdd-start`, `/execute-plan`, etc.
+   - `rules/` — domain-specific standards (Rails, Terraform, SDD, etc.)
 
-If you want these configurations available globally in Claude Code:
+### Option 2: Copy to VS Code Configuration (Global)
+
+This option makes these configurations available globally in Claude Code across all workspaces.
 
 1. Clone the repository (see step 1 above).
 
-2. Copy the configuration files to your VS Code user configuration directory:
+2. Copy the configuration files to your Claude Code user configuration directory:
    ```bash
    # macOS/Linux
-   cp -r agents/ ~/.config/Code/User/agents/
-   cp -r skills/ ~/.config/Code/User/skills/
-   cp -r rules/ ~/.config/Code/User/rules/
-   cp CLAUDE.md ~/.config/Code/User/
+   mkdir -p ~/.config/Code/User/claude-code
+   cp -r agents/ ~/.config/Code/User/claude-code/
+   cp -r skills/ ~/.config/Code/User/claude-code/
+   cp -r rules/ ~/.config/Code/User/claude-code/
+   cp CLAUDE.md ~/.config/Code/User/claude-code/
 
    # Windows
-   xcopy agents\ %APPDATA%\Code\User\agents\
-   xcopy skills\ %APPDATA%\Code\User\skills\
-   xcopy rules\ %APPDATA%\Code\User\rules\
-   copy CLAUDE.md %APPDATA%\Code\User\
+   mkdir %APPDATA%\Code\User\claude-code
+   xcopy agents\ %APPDATA%\Code\User\claude-code\agents\
+   xcopy skills\ %APPDATA%\Code\User\claude-code\skills\
+   xcopy rules\ %APPDATA%\Code\User\claude-code\rules\
+   copy CLAUDE.md %APPDATA%\Code\User\claude-code\
    ```
 
-3. Restart VS Code to apply the changes.
+3. Restart VS Code and reopen Claude Code chat.
 
 ### Verify Installation
 
-After setup, open Claude Code chat and confirm that:
-- `/sdd-start` command is available (slash command)
-- `planner`, `implementer`, `reviewer` agents are available
-- `CLAUDE.md` is loaded with core behavioral constraints
+After setup, open Claude Code chat and confirm:
+
+1. **Check CLAUDE.md is loaded**: Look for core behavioral constraints in the system prompt:
+   - "Think before coding"
+   - "Simplicity first"
+   - "Surgical changes"
+
+2. **Test agents** — Type in chat:
+   ```
+   @planner What agents are available?
+   ```
+   You should see: `planner`, `implementer`, `reviewer`, `antagonist`, `tdd-guide`, `tech-lead`
+
+3. **Test slash commands** — Type `/` in chat and you should see suggestions for:
+   `/sdd-start`, `/sdd-research`, `/sdd-refine`, `/execute-plan`, etc.
+
+## Using with Claude Code
+
+### Invoking Agents
+
+To use a specific agent, type `@agent-name` in Claude Code chat:
+
+```
+@planner Convert this requirement into a plan.md
+```
+
+Available agents:
+- `@planner` — Creates a deterministic plan from a task/spec
+- `@implementer` — Executes the plan with minimal changes
+- `@reviewer` — Reviews code against plan, spec, and artifacts
+- `@antagonist` — Adversarial pre-PR review for risks and blockers
+- `@tech-lead` — Research and planning (read-only, no code changes)
+- `@tdd-guide` — Enforces test-first workflow
+
+### Using Slash Commands
+
+Slash commands orchestrate multi-step workflows. Type `/` in Claude Code to see available commands:
+
+```
+/sdd-start                    # Start a new feature with intent-level spec
+/sdd-research                 # Research the repository
+/sdd-refine                   # Refine spec with research findings
+/sdd-delivery-artifacts       # Map feature requirements
+/sdd-facts                    # Create verifiable assertions
+/execute-plan                 # Drive tasks to completion
+/deep-spec-review             # Parallel specialist reviewers
+/architecture-decision-records # Capture ADRs
+/spec-review                  # Lightweight spec review
+```
+
+### Core Behavioral Constraints
+
+When you use Claude Code in this workspace, `CLAUDE.md` automatically loads four core principles:
+
+1. **Think before coding** — state assumptions, surface ambiguities
+2. **Simplicity first** — minimum code that solves the problem
+3. **Surgical changes** — touch only what's necessary
+4. **Goal-driven execution** — define success criteria and verify
+
+Domain-specific rules from `rules/` (Rails, Terraform, testing, security, etc.) are loaded on demand based on your project context.
 
 ## How it works
 

@@ -29,20 +29,36 @@ install_file() {
   dst_dir="$(dirname "$dst")"
   mkdir -p "$dst_dir"
 
+  if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+    echo "Cannot replace non-file path: $dst" >&2
+    exit 1
+  fi
+
   if [ -f "$dst" ] && ! cmp -s "$src" "$dst"; then
-    cp "$dst" "$dst.bak.$timestamp"
+    cp -p "$dst" "$dst.bak.$timestamp"
     echo "Backed up $dst to $dst.bak.$timestamp"
   fi
 
-  cp "$src" "$dst"
+  cp -p "$src" "$dst"
 }
 
-install_dir() {
+install_tree() {
   local src="$1"
   local dst="$2"
+  local path
+  local rel
 
   mkdir -p "$dst"
-  cp -R "$src"/. "$dst"/
+
+  while IFS= read -r -d '' path; do
+    rel="${path#$src/}"
+    mkdir -p "$dst/$rel"
+  done < <(find "$src" -mindepth 1 -type d -print0)
+
+  while IFS= read -r -d '' path; do
+    rel="${path#$src/}"
+    install_file "$path" "$dst/$rel"
+  done < <(find "$src" -type f -print0)
 }
 
 verify_path() {
@@ -72,11 +88,11 @@ fi
 
 "$repo_root/scripts/generate-codex-agents.sh" "$codex_home/agents"
 
-install_dir "$repo_root/codex/prompts" "$codex_home/prompts"
-install_dir "$repo_root/agents" "$agents_home/agents"
-install_dir "$repo_root/skills" "$agents_home/skills"
-install_dir "$repo_root/rules" "$agents_home/rules"
-install_dir "$repo_root/commands" "$agents_home/commands"
+install_tree "$repo_root/codex/prompts" "$codex_home/prompts"
+install_tree "$repo_root/agents" "$agents_home/agents"
+install_tree "$repo_root/skills" "$agents_home/skills"
+install_tree "$repo_root/rules" "$agents_home/rules"
+install_tree "$repo_root/commands" "$agents_home/commands"
 
 verify_path "$codex_home/CORE.md"
 verify_path "$codex_home/AGENTS.md"

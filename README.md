@@ -148,7 +148,7 @@ git pull
 ./scripts/install-codex.sh
 ```
 
-Single-file configs are backed up before replacement when the target file already exists and differs.
+Existing files are never silently overwritten. When an installer replaces a changed file, it first creates a timestamped backup next to the original, such as `settings.json.bak.20260605123045`. Directory installs use the same per-file backup behavior.
 
 ## Usage
 

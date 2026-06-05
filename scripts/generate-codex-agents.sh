@@ -4,6 +4,7 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/.." && pwd)"
 out_dir="${1:-$repo_root/codex/agents}"
+timestamp="$(date +%Y%m%d%H%M%S)"
 
 mkdir -p "$out_dir"
 
@@ -64,6 +65,23 @@ toml_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 
+install_generated_file() {
+  local src="$1"
+  local dst="$2"
+
+  if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+    echo "Cannot replace non-file path: $dst" >&2
+    exit 1
+  fi
+
+  if [ -f "$dst" ] && ! cmp -s "$src" "$dst"; then
+    cp -p "$dst" "$dst.bak.$timestamp"
+    echo "Backed up $dst to $dst.bak.$timestamp"
+  fi
+
+  cp -p "$src" "$dst"
+}
+
 for agent in "${agent_files[@]}"; do
   src="$repo_root/agents/$agent.md"
   [ -f "$src" ] || continue
@@ -90,13 +108,16 @@ for agent in "${agent_files[@]}"; do
   fi
 
   dst="$out_dir/$name.toml"
+  tmp_file="$(mktemp "${TMPDIR:-/tmp}/codex-agent.XXXXXX")"
   {
     printf 'name = "%s"\n' "$(toml_escape "$name")"
     printf 'description = "%s"\n\n' "$(toml_escape "$description")"
     printf "developer_instructions = '''\n"
     body_without_frontmatter "$src"
     printf "\n'''\n"
-  } > "$dst"
+  } > "$tmp_file"
 
+  install_generated_file "$tmp_file" "$dst"
+  rm -f "$tmp_file"
   echo "Generated $dst"
 done

@@ -11,6 +11,7 @@ mkdir -p "$out_dir"
 agent_files=(
   antagonist
   implementer
+  new-project-architect
   planner
   reviewer
   tdd-guide

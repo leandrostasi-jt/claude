@@ -64,8 +64,8 @@ CLAUDE_HOME=/path/to/.claude ./scripts/install-claude-code.sh
 
 After installation, restart Claude Code and check:
 
-- Type `@` and confirm agents such as `@planner`, `@implementer`, `@reviewer`, `@antagonist`, `@tech-lead`, and `@tdd-guide` are available.
-- Type `/` and confirm workflow commands such as `/sdd-start`, `/sdd-research`, `/sdd-refine`, and `/execute-plan` are available.
+- Type `@` and confirm agents such as `@planner`, `@implementer`, `@reviewer`, `@antagonist`, `@tech-lead`, `@tdd-guide`, and `@new-project-architect` are available.
+- Type `/` and confirm workflow commands such as `/new-project-start`, `/new-project-research`, `/new-project-architecture`, `/sdd-start`, `/sdd-research`, `/sdd-refine`, and `/execute-plan` are available.
 - Confirm the shared constraints from `CORE.md` are active.
 
 ## Install For OpenAI Codex
@@ -108,10 +108,10 @@ CODEX_HOME=/path/to/.codex AGENTS_HOME=/path/to/.agents ./scripts/install-codex.
 
 After installation, restart Codex and check:
 
-- Run `/skills` or type `$` and confirm skills such as `$sdd-start`, `$sdd-research`, `$sdd-refine`, and `$execute-plan` are available.
-- Ask Codex to spawn a custom agent, for example: `Spawn the planner agent to review this spec`.
-- Type `/` and look for prompt wrappers such as `/prompts:sdd-start` where custom prompts are enabled.
-- Confirm `~/.codex/AGENTS.md`, `~/.codex/agents/planner.toml`, and `$HOME/.agents/skills/execute-plan/SKILL.md` exist.
+- Run `/skills` or type `$` and confirm skills such as `$new-project-start`, `$new-project-research`, `$sdd-start`, `$sdd-research`, `$sdd-refine`, and `$execute-plan` are available.
+- Ask Codex to spawn a custom agent, for example: `Spawn the new-project-architect agent to review these source docs`.
+- Type `/` and look for prompt wrappers such as `/prompts:new-project-start` and `/prompts:sdd-start` where custom prompts are enabled.
+- Confirm `~/.codex/AGENTS.md`, `~/.codex/agents/new-project-architect.toml`, `~/.codex/agents/planner.toml`, and `$HOME/.agents/skills/execute-plan/SKILL.md` exist.
 
 ## Install Both Tools
 
@@ -155,6 +155,9 @@ Existing files are never silently overwritten. When an installer replaces a chan
 ### Claude Code
 
 ```text
+/new-project-start doc/new-project/20260603_my_project
+@new-project-architect Review the source docs and identify architecture decisions.
+
 /sdd-start doc/playbook/20260603_my_feature
 @planner Review this spec and create a plan.md
 /execute-plan
@@ -164,6 +167,9 @@ Existing files are never silently overwritten. When an installer replaces a chan
 ### OpenAI Codex
 
 ```text
+$new-project-start doc/new-project/20260603_my_project
+Spawn the new-project-architect agent to review these source docs.
+
 $sdd-start doc/playbook/20260603_my_feature
 Spawn the planner agent to review this spec and create a plan.md.
 $execute-plan doc/playbook/20260603_my_feature
@@ -171,6 +177,61 @@ Spawn the reviewer agent to check if implementation matches the plan.
 ```
 
 If custom prompts are enabled in your Codex surface, the prompt wrappers are also available as `/prompts:<name>`.
+
+## New Project Workflow
+
+Use this workflow when starting a brand-new software project from source documents such as product notes, domain notes, requirements, meeting notes, ADR drafts, or other `.md` files.
+
+Do not use this workflow for adding a feature to an existing codebase. Use SDD for existing-project feature work.
+
+The workflow is:
+
+```text
+new-project-start
+  -> source_inventory.md + project_brief.md
+
+new-project-research
+  -> requirements.md + contradictions.md + open_questions.md
+
+new-project-architecture
+  -> architecture.md + ADR candidates
+
+new-project-delivery-artifacts
+  -> delivery_artifacts/*.md
+
+new-project-facts
+  -> facts/*.md
+
+planner
+  -> plan.md + plan/tN.md
+
+execute-plan
+  -> scaffold + project foundation + first vertical slice
+
+reviewer
+  -> final review against project brief, requirements, architecture, artifacts, facts, and plan
+
+antagonist
+  -> adversarial review before treating the scaffold as ready for normal feature work
+```
+
+Create a new-project directory:
+
+```text
+doc/new-project/<YYYYMMDD>_<project_slug>/
+```
+
+The new-project planner must distinguish files to create from files that must already exist:
+
+```md
+## Files To Create
+
+## Files To Modify
+
+## Files That Must Already Exist
+```
+
+After the scaffold and first vertical slice are implemented and reviewed, use normal SDD under `doc/playbook/<feature>/` for future feature work.
 
 ## Spec-Driven Development Workflow
 
